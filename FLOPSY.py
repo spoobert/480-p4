@@ -1,59 +1,45 @@
 from itertools import product
 import collections
 from perm import perm 
-herdSize = 0
-#getCount = None
-def Counter(f):
-    global getCount
-    n = 0
-    getCount = lambda: n
-    def inner(*args, **kwargs):
-        nonlocal n
-        n += 1
-        return f(*args, **kwargs)
-    return inner
+
+
+class Counter :
+    def __init__(self, fun) :
+        self._fun = fun
+        self.counter=0
+        import time
+        self.timer = time.clock()
+
+    def __call__(self,*args, **kwargs) :
+        self.counter += 1
+        return self._fun(*args, **kwargs)
+    def count(self):
+        return self.counter
 
 # Flopsy represents the next chosen move in the game
 # 'root' Flopsy is the initial game state
 # Flopsy is mad at Mommy...Flopsy:= playerNot(Mommy.player) ; maxTurnNot(Mommy.maxTurn)
-class abFlopsy():
-    def __init__(self, board, maxT=True, mv='root', d=0):
-        global herdSize 
-        herdSize += 1
+class Flopsy():
+    def __init__(self, board, maxT=True, mv='root'):
         self.move = mv
-        self.maxTurn = False if maxT else True
+        self.maxTurn = not maxT
         self.board = [ [p for p in line] for line in board ]
         if mv != 'root':
             self.board[mv[0]][mv[1]] = 1 if self.maxTurn else 2
         #swap i,j -> j,i to make row major order
         self.openSet = [ (i,j) for j,i in product( range(4), range(4)) if self.board[i][j] == 0 ]
         self.p1Count = sum( map(self.findPossiblePOne,perm) )
-        self.p2Count = sum( map(self.findPossiblePTwo,perm) ) 
+        self.p2Count = sum( map(self.findPossiblePTwo,perm) )
+        # any(self.mapFindWinner(p) == 1 for p in perm)
         self.p1Won = True if [ p for p in map(self.mapFindWinner,perm) if p == 1] else False
         self.p2Won = True if [ p for p in map(self.mapFindWinner,perm) if p == 2] else False
         self.eval = self.staticEval()
-        self.depth = d 
     
-    def __repr__(self):
-        return str(self.board[0])+ '\n'  + str(self.board[1]) + '\n' + str(self.board[2])+'\n' + str(self.board[3]) + '\n' +' depth ' + str(self.depth) +' mv: '+str(self.move)
-        
     def isLeaf(self):
-        '''
-        if self.p1Won:
-            print('P1 wins --> leaf')
-            print(self)
-            return True
-        if self.p2Won:
-            print('P2 wins --> leaf')
-            print(self)
+        if self.p1Won or self.p2Won:
             return True
         if self.openSet == []:
-            print('openSet empty --> leaf')
-            print(self)
             return True
-        '''
-        if self.depth == 6:
-           return True
         return False 
 
     def staticEval(self):
@@ -82,8 +68,11 @@ class abFlopsy():
     # 1. board positions -> add single move from open set
     # 2. If (parent)maxTurn -> (child)minTurn and player gets 2
     def lilFlopsies(self):
-        return [ abFlopsy(self.board, self.maxTurn,mv, self.depth + 1 ) for mv in self.openSet ]
-        
+        return [ Flopsy(self.board, self.maxTurn,mv ) for mv in self.openSet ]
+        '''
+        from multiprocessing import Pool
+        return [ Pool().apply( Flopsy, (self.board, self.maxTurn, mv) ) for mv in self.openSet ]
+        '''    
 def theMax(a,b):
     aInf = (type(a) == float)    
     bInf = (type(b) == float)
@@ -106,35 +95,17 @@ def theMin(a,b):
         return b if ( b < a.eval ) else a
     return a if ( a.eval < b.eval ) else b
 
-def ltEt(a,b):
-    aInf = (type(a) == float)    
-    bInf = (type(b) == float)
-    if aInf and bInf:
-        return a if ( a <= b) else b
-    if aInf:
-        return a if ( a <= b.eval) else b
-    if bInf:
-        return b if ( b <= a.eval ) else a
-    return a if ( a.eval <= b.eval ) else b
-
-#TODO Check for Valid board
 @Counter
-def abMiniMax(flopsy,alpha=float('-inf'),beta=float('inf')):
-    print(flopsy)    
+def minMax(flopsy):
     if flopsy.isLeaf():
         return flopsy
     if flopsy.maxTurn:
-        res = alpha
-        for lil in flopsy.lilFlopsies():
-            val = abMiniMax(lil,res,beta) 
-            res = theMax(res, val) 
-            if ltEt(beta,res):
-                return res
+        val = float('-inf')
     else:
-        res = beta
-        for lil in flopsy.lilFlopsies():
-            val = abMiniMax(lil, alpha, res)
-            res = theMin( res, val )  
-            if ltEt(res, alpha):
-                return res
-    return res
+        val = float('inf')
+    for lil in flopsy.lilFlopsies():
+        if flopsy.maxTurn:
+            val = theMax( val, minMax(lil) )
+        else:
+            val = theMin( val, minMax(lil) )
+    return val
