@@ -38,23 +38,23 @@ class abFlopsy():
         return str(self.board[0])+ '\n'  + str(self.board[1]) + '\n' + str(self.board[2])+'\n' + str(self.board[3]) + '\n' +' depth ' + str(self.depth) +' mv: '+str(self.move)
         
     def isLeaf(self):
-        '''
+        
         if self.p1Won:
-            print('P1 wins --> leaf')
-            print(self)
+            #print('P1 wins --> leaf')
+            #print(self)
             return True
         if self.p2Won:
-            print('P2 wins --> leaf')
-            print(self)
+            #print('P2 wins --> leaf')
+            #print(self)
             return True
         if self.openSet == []:
-            print('openSet empty --> leaf')
-            print(self)
+            #print('openSet empty --> leaf')
+            #print(self)
             return True
-        '''
-        if self.depth == 6:
-           return True
-        return False 
+        
+        #if self.depth == 6:
+        #   return True
+        #return False 
 
     def staticEval(self):
         if self.p1Won:
@@ -107,33 +107,65 @@ def theMin(a,b):
     return a if ( a.eval < b.eval ) else b
 
 def ltEt(a,b):
-    aInf = (type(a) == float)    
-    bInf = (type(b) == float)
-    if aInf and bInf:
-        return a if ( a <= b) else b
-    if aInf:
-        return a if ( a <= b.eval) else b
-    if bInf:
-        return b if ( b <= a.eval ) else a
-    return a if ( a.eval <= b.eval ) else b
+    try:
+        #aInf = (type(a) == float) or (type(a) == int)    
+        #bInf = (type(b) == float) or (type(b) == int)
+        aInf = (type(a) == float)    
+        bInf = (type(b) == float)
+        #if(type(a) == int):
+        #    if(bInf or (type(b) == int)):
+        #        return a if (a <= b) else b
+        #    return a if (a <= b.eval) else b
+        #if(type(b) == int):
+        #    if(aInf or type(a) == int):
+        #        return a if (a <= b) else b
+        #    return a if (a.eval <= b) else b
+        if aInf and bInf:
+            return a if ( a <= b) else b
+        if aInf:
+            return a if ( a <= b.eval) else b
+        if bInf:
+            return b if ( b <= a.eval ) else a
+        return a if ( a.eval <= b.eval ) else b
+    except:
+        #print("error: ", type(a), ' ', type(b))
+        #exit(1)
+        '''
+        if(type(a) == int):
+            return a
+        if(type(b) == int):
+            return b
+        '''
+        if(type(a) == int):
+            if(bInf or (type(b) == int)):
+                return a if (a <= b) else b
+            return a if (a <= b.eval) else b
+        if(type(b) == int):
+            if(aInf or type(a) == int):
+                return a if (a <= b) else b
+            return a if (a.eval <= b) else b
 
 #TODO Check for Valid board
 @Counter
 def abMiniMax(flopsy,alpha=float('-inf'),beta=float('inf')):
-    print(flopsy)    
+    #print(flopsy)    
     if flopsy.isLeaf():
         return flopsy
     if flopsy.maxTurn:
-        res = alpha
+        #res = alpha
+        res = float("-inf")
         for lil in flopsy.lilFlopsies():
-            val = abMiniMax(lil,res,beta) 
+            #val = abMiniMax(lil,res,beta)
+            val = abMiniMax(lil,alpha,flopsy.eval)
             res = theMax(res, val) 
             if ltEt(beta,res):
                 return res
     else:
-        res = beta
+        #res = beta
+        res = float("inf")
         for lil in flopsy.lilFlopsies():
-            val = abMiniMax(lil, alpha, res)
+            #val = abMiniMax(lil, alpha, res)
+            val = abMiniMax(lil, flopsy.eval, beta)
             res = theMin( res, val )  
             if ltEt(res, alpha):
                 return res
